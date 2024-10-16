@@ -19,7 +19,16 @@ document.addEventListener('DOMContentLoaded', () => {
     let items = [];
     let headers, indices = {};
 
-    fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vT5qcq-QHtDeJHajLkcTHSwI5JsJndZotORtxyBjt1u1VLqOdLZx94RKdda1c064dUd0TBxRQAeippH/pub?output=csv')
+    // Fetch the configuration CSV for title and logos
+    fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vQFs1QTm7qtKV8JLHabFU6vJWNTv-m9OP8M2BkDqX0ooSWqdXALW-UJ2UZAN5NFrY6R_HEH6--SdVa7/pub?output=csv')
+        .then(response => response.text())
+        .then(configData => {
+            const configItems = parseCSV(configData);
+            const configHeaders = configItems[0];
+            initializeIndices(['Title', 'Logo1', 'Logo2'], configHeaders);
+            setTitleAndLogos(configItems[1]); // Set title and logos from the first row
+            return fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vT5qcq-QHtDeJHajLkcTHSwI5JsJndZotORtxyBjt1u1VLqOdLZx94RKdda1c064dUd0TBxRQAeippH/pub?output=csv');
+        })
         .then(response => response.text())
         .then(csvData => {
             items = parseCSV(csvData);
@@ -35,13 +44,26 @@ document.addEventListener('DOMContentLoaded', () => {
             .map(row => row.split(',').map(cell => cell.trim()));
     }
 
-    function initializeIndices(requiredHeaders) {
+    function initializeIndices(requiredHeaders, csvHeaders) {
         requiredHeaders.forEach(header => {
-            indices[header] = headers.indexOf(header);
+            indices[header] = csvHeaders.indexOf(header);
             if (indices[header] === -1) {
                 console.error(`Header ${header} not found.`);
             }
         });
+    }
+
+    function setTitleAndLogos(firstRow) {
+        // Set the title from the CSV
+        document.title = firstRow[indices['Title']] || 'Simquipment';
+
+        // Set the logo images from the CSV
+        const logo1Url = firstRow[indices['Logo1']];
+        const logo2Url = firstRow[indices['Logo2']];
+        
+        const logos = document.querySelectorAll('.logo1');
+        logos[0].src = logo1Url;
+        logos[1].src = logo2Url;
     }
 
     function initializeGallery() {
