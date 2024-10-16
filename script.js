@@ -122,55 +122,43 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function displayGallery() {
-        const selectedCategory = document.getElementById('categorySelect').value;
-        const selectedSubcategory = document.getElementById('subcategorySelect').value;
-        const gallery = document.getElementById('csvGallery');
-        gallery.innerHTML = '';
-        let itemCount = 0;
+function displayGallery() {
+    const selectedCategory = document.getElementById('categorySelect').value;
+    const selectedSubcategory = document.getElementById('subcategorySelect').value;
+    const gallery = document.getElementById('csvGallery');
+    gallery.innerHTML = '';
+    let itemCount = 0;
 
-        const skuGroups = new Map();
-        const defaultImageUrl = 'https://lh3.googleusercontent.com/d/1YkirFIDROJt26ULPsGz0Vcax7YjGrBZa';
+    console.log("Selected Category:", selectedCategory);
+    console.log("Selected Subcategory:", selectedSubcategory);
 
-        items.slice(1).forEach(item => {
-            if (!item || item.length < headers.length) return; // Defensive check
+    const skuGroups = new Map();
+    const defaultImageUrl = 'https://lh3.googleusercontent.com/d/1YkirFIDROJt26ULPsGz0Vcax7YjGrBZa';
 
-            const sku = item[indices['SKU']] || '';
-            const skuVar = item[indices['SKUVAR']] || '';
-            const quantityLimit = (item[indices['QuantityLimit']] || '').trim().toLowerCase() === 'true';
-            const quantity = parseInt(item[indices['Quantity']] || '0') || 0;
-            const categoryMatch = selectedCategory === 'All' || item[indices['Category']] === selectedCategory;
-            const subcategoryMatch = selectedSubcategory === 'All' || item[indices['SubCategory']] === selectedSubcategory;
+    items.slice(1).forEach(item => {
+        if (!item || item.length < headers.length) return; // Defensive check
 
-            if (categoryMatch && subcategoryMatch) {
-                const imageUrl = (item[indices['Thumbnails']] && item[indices['Thumbnails']].trim() !== '')
-                    ? item[indices['Thumbnails']]
-                    : defaultImageUrl;
+        const sku = item[indices['SKU']] || '';
+        const skuVar = item[indices['SKUVAR']] || '';
+        const categoryMatch = selectedCategory === 'All' || item[indices['Category']] === selectedCategory;
+        const subcategoryMatch = selectedSubcategory === 'All' || item[indices['SubCategory']] === selectedSubcategory;
 
-                const key = `${sku}-${skuVar}`;
-                if (!skuGroups.has(key)) {
-                    skuGroups.set(key, {
-                        count: 1,
-                        skuName: item[indices['SKUName']] || 'Unknown SKU',
-                        imageUrl,
-                        quantityLimit,
-                        quantity,
-                        sku
-                    });
-                } else {
-                    skuGroups.get(key).count++;
-                }
-            }
-        });
+        console.log("Item SKU:", sku, "Category Match:", categoryMatch, "Subcategory Match:", subcategoryMatch);
 
-        skuGroups.forEach(({ count, skuName, imageUrl, sku, quantityLimit, quantity }) => {
-            const div = createCard(skuName, count, imageUrl, sku, quantityLimit, quantity);
-            gallery.appendChild(div);
-            itemCount++;
-        });
+        if (categoryMatch && subcategoryMatch) {
+            const imageUrl = (item[indices['Thumbnails']] && item[indices['Thumbnails']].trim() !== '')
+                ? item[indices['Thumbnails']]
+                : defaultImageUrl;
 
-        document.getElementById('itemCount').textContent = ` ${itemCount} Found`;
-    }
+            // Continue building the skuGroups and display cards
+        }
+    });
+
+    // Log total item count
+    console.log("Total items found:", itemCount);
+    document.getElementById('itemCount').textContent = ` ${itemCount} Found`;
+}
+
 
     function createCard(skuName, skuCount, imageUrl, sku, quantityLimit, quantity) {
         const div = document.createElement('div');
