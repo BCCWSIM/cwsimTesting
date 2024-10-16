@@ -19,51 +19,35 @@ document.addEventListener('DOMContentLoaded', () => {
     let items = [];
     let headers, indices = {};
 
-    // Fetch the configuration CSV for title and logos
-    fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vQFs1QTm7qtKV8JLHabFU6vJWNTv-m9OP8M2BkDqX0ooSWqdXALW-UJ2UZAN5NFrY6R_HEH6--SdVa7/pub?output=csv')
-        .then(response => response.text())
-        .then(configData => {
-            const configItems = parseCSV(configData);
-            const configHeaders = configItems[0];
-            initializeIndices(['Title', 'Logo1', 'Logo2'], configHeaders);
-            setTitleAndLogos(configItems[1]); // Set title and logos from the first row
-            return fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vT5qcq-QHtDeJHajLkcTHSwI5JsJndZotORtxyBjt1u1VLqOdLZx94RKdda1c064dUd0TBxRQAeippH/pub?output=csv');
-        })
+    fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vT5qcq-QHtDeJHajLkcTHSwI5JsJndZotORtxyBjt1u1VLqOdLZx94RKdda1c064dUd0TBxRQAeippH/pub?output=csv')
         .then(response => response.text())
         .then(csvData => {
+            console.log("Fetched CSV Data:", csvData);  // Log fetched CSV data
             items = parseCSV(csvData);
-            headers = items[0];
-            initializeIndices(['SKU', 'SKUVAR', 'SKUName', 'QuantityLimit', 'Quantity', 'Category', 'SubCategory', 'Thumbnails']);
-            initializeGallery();
+            if (items.length > 0) {
+                headers = items[0];
+                initializeIndices(['SKU', 'SKUVAR', 'SKUName', 'QuantityLimit', 'Quantity', 'Category', 'SubCategory', 'Thumbnails']);
+                initializeGallery();
+            } else {
+                console.error('No data found in the CSV.');
+            }
         })
         .catch(error => console.error('Error fetching CSV:', error));
 
     function parseCSV(csvData) {
-        return csvData.split('\n')
-            .filter(row => row.trim().length > 0)
-            .map(row => row.split(',').map(cell => cell.trim()));
+        const rows = csvData.split('\n').filter(row => row.trim().length > 0);
+        if (rows.length === 0) return []; // Return an empty array if no rows
+
+        return rows.map(row => row.split(',').map(cell => cell.trim()));
     }
 
-    function initializeIndices(requiredHeaders, csvHeaders) {
+    function initializeIndices(requiredHeaders) {
         requiredHeaders.forEach(header => {
-            indices[header] = csvHeaders.indexOf(header);
+            indices[header] = headers.indexOf(header);
             if (indices[header] === -1) {
                 console.error(`Header ${header} not found.`);
             }
         });
-    }
-
-    function setTitleAndLogos(firstRow) {
-        // Set the title from the CSV
-        document.title = firstRow[indices['Title']] || 'Simquipment';
-
-        // Set the logo images from the CSV
-        const logo1Url = firstRow[indices['Logo1']];
-        const logo2Url = firstRow[indices['Logo2']];
-        
-        const logos = document.querySelectorAll('.logo1');
-        logos[0].src = logo1Url;
-        logos[1].src = logo2Url;
     }
 
     function initializeGallery() {
@@ -122,43 +106,55 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-function displayGallery() {
-    const selectedCategory = document.getElementById('categorySelect').value;
-    const selectedSubcategory = document.getElementById('subcategorySelect').value;
-    const gallery = document.getElementById('csvGallery');
-    gallery.innerHTML = '';
-    let itemCount = 0;
+    function displayGallery() {
+        const selectedCategory = document.getElementById('categorySelect').value;
+        const selectedSubcategory = document.getElementById('subcategorySelect').value;
+        const gallery = document.getElementById('csvGallery');
+        gallery.innerHTML = '';
+        let itemCount = 0;
 
-    console.log("Selected Category:", selectedCategory);
-    console.log("Selected Subcategory:", selectedSubcategory);
+        const skuGroups = new Map();
+        const defaultImageUrl = 'https://lh3.googleusercontent.com/d/1YkirFIDROJt26ULPsGz0Vcax7YjGrBZa';
 
-    const skuGroups = new Map();
-    const defaultImageUrl = 'https://lh3.googleusercontent.com/d/1YkirFIDROJt26ULPsGz0Vcax7YjGrBZa';
+        items.slice(1).forEach(item => {
+            if (!item || item.length < headers.length) return; // Defensive check
 
-    items.slice(1).forEach(item => {
-        if (!item || item.length < headers.length) return; // Defensive check
+            const sku = item[indices['SKU']] || '';
+            const skuVar = item[indices['SKUVAR']] || '';
+            const quantityLimit = (item[indices['QuantityLimit']] || '').trim().toLowerCase() === 'true';
+            const quantity = parseInt(item[indices['Quantity']] || '0') || 0;
+            const categoryMatch = selectedCategory === 'All' || item[indices['Category']] === selectedCategory;
+            const subcategoryMatch = selectedSubcategory === 'All' || item[indices['SubCategory']] === selectedSubcategory;
 
-        const sku = item[indices['SKU']] || '';
-        const skuVar = item[indices['SKUVAR']] || '';
-        const categoryMatch = selectedCategory === 'All' || item[indices['Category']] === selectedCategory;
-        const subcategoryMatch = selectedSubcategory === 'All' || item[indices['SubCategory']] === selectedSubcategory;
+            if (categoryMatch && subcategoryMatch) {
+                const imageUrl = (item[indices['Thumbnails']] && item[indices['Thumbnails']].trim() !== '')
+                    ? item[indices['Thumbnails']]
+                    : defaultImageUrl;
 
-        console.log("Item SKU:", sku, "Category Match:", categoryMatch, "Subcategory Match:", subcategoryMatch);
+                const key = `${sku}-${skuVar}`;
+                if (!skuGroups.has(key)) {
+                    skuGroups.set(key, {
+                        count: 1,
+                        skuName: item[indices['SKUName']] || 'Unknown SKU',
+                        imageUrl,
+                        quantityLimit,
+                        quantity,
+                        sku
+                    });
+                } else {
+                    skuGroups.get(key).count++;
+                }
+            }
+        });
 
-        if (categoryMatch && subcategoryMatch) {
-            const imageUrl = (item[indices['Thumbnails']] && item[indices['Thumbnails']].trim() !== '')
-                ? item[indices['Thumbnails']]
-                : defaultImageUrl;
+        skuGroups.forEach(({ count, skuName, imageUrl, sku, quantityLimit, quantity }) => {
+            const div = createCard(skuName, count, imageUrl, sku, quantityLimit, quantity);
+            gallery.appendChild(div);
+            itemCount++;
+        });
 
-            // Continue building the skuGroups and display cards
-        }
-    });
-
-    // Log total item count
-    console.log("Total items found:", itemCount);
-    document.getElementById('itemCount').textContent = ` ${itemCount} Found`;
-}
-
+        document.getElementById('itemCount').textContent = ` ${itemCount} Found`;
+    }
 
     function createCard(skuName, skuCount, imageUrl, sku, quantityLimit, quantity) {
         const div = document.createElement('div');
