@@ -108,7 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let itemCount = 0;
 
         const skuGroups = new Map();
-        const defaultImageUrl = 'https://lh3.googleusercontent.com/d/12bSAqqLcuxVSt_HGtaGZuS0VuLtoB6X5';
+        const defaultImageUrl = 'https://lh3.googleusercontent.com/d/1YkirFIDROJt26ULPsGz0Vcax7YjGrBZa';
 
         items.slice(1).forEach(item => {
             if (!item || item.length < headers.length) return; // Defensive check
