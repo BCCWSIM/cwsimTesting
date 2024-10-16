@@ -24,8 +24,11 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(csvData => {
             console.log("Fetched CSV Data:", csvData);  // Log fetched CSV data
             items = parseCSV(csvData);
+            console.log("Parsed Items:", items);  // Log parsed items
+
             if (items.length > 0) {
                 headers = items[0];
+                console.log("Headers:", headers);  // Log headers
                 initializeIndices(['SKU', 'SKUVAR', 'SKUName', 'QuantityLimit', 'Quantity', 'Category', 'SubCategory', 'Thumbnails']);
                 initializeGallery();
             } else {
@@ -45,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
         requiredHeaders.forEach(header => {
             indices[header] = headers.indexOf(header);
             if (indices[header] === -1) {
-                console.error(`Header ${header} not found.`);
+                console.error(`Header ${header} not found. Check your CSV format.`);
             }
         });
     }
