@@ -81,9 +81,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 function setTitleAndLogos(firstRow) {
-    const titleElement = document.createElement('h1'); // Create title element
-    titleElement.textContent = firstRow[titleIndices['Title']] || 'Default Title';
-    document.body.prepend(titleElement); // Add title to the body or a specific container
+    // Set the document title
+    document.title = firstRow[titleIndices['Title']] || 'Default Title';
 
     // Select the existing logo elements
     const logo1Element = document.querySelector('.logo1');
@@ -95,7 +94,34 @@ function setTitleAndLogos(firstRow) {
 
     logo2Element.src = firstRow[titleIndices['Logo2']] || 'default-logo2.png'; 
     logo2Element.alt = 'Logo 2';
+
+    // Create category and subcategory dropdowns and reset button
+    const categories = new Set(items.slice(1).map(item => item[indices['Category']] || ''));
+    const categorySelect = createDropdown('categorySelect', categories);
+    const subcategorySelect = createDropdown('subcategorySelect', new Set());
+
+    const searchContainer = document.getElementById('searchAndFilterContainer');
+
+    searchContainer.appendChild(createLabel('Category:', 'categorySelect'));
+    searchContainer.appendChild(categorySelect);
+    searchContainer.appendChild(createLabel('SubCategory:', 'subcategorySelect'));
+    searchContainer.appendChild(subcategorySelect);
+
+    const resetButton = createResetButton(categorySelect, subcategorySelect);
+    searchContainer.appendChild(resetButton);
+
+    // Set up event listeners for dropdowns
+    categorySelect.addEventListener('change', () => {
+        filterSubcategories(subcategorySelect, categorySelect.value);
+        displayGallery();
+    });
+
+    subcategorySelect.addEventListener('change', displayGallery);
+    
+    // Initial filtering of subcategories
+    filterSubcategories(subcategorySelect, categorySelect.value);
 }
+
 
 
     function initializeGallery() {
