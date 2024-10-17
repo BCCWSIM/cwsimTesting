@@ -31,8 +31,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log("Headers:", headers);
                 initializeIndices(['Title', 'Logo1', 'Logo2', 'SKU', 'SKUVAR', 'SKUName', 'QuantityLimit', 'Quantity', 'Category', 'SubCategory', 'Thumbnails']);
                 
-                // Set the title and logos
-                setTitleAndLogos(items[1]); // Assuming the title and logos are in the first data row
+                // Set title and logos from the first row of data
+                setTitleAndLogos(items[1]); // Assuming the first data row contains the title and logos
                 initializeGallery();
             } else {
                 console.error('No data found in the CSV.');
@@ -56,14 +56,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function setTitleAndLogos(firstRow) {
-        const titleElement = document.getElementById('pageTitle');
-        const logo1Element = document.querySelector('.logo1');
-        const logo2Element = document.querySelector('.logo2');
+        const titleElement = document.createElement('h1'); // Create title element
+        titleElement.textContent = firstRow[indices['Title']] || 'Default Title';
+        document.body.prepend(titleElement); // Add title to the body or a specific container
 
-        titleElement.textContent = firstRow[indices['Title']] || 'Default Title'; // Set the title
+        const logo1Element = document.createElement('img');
+        logo1Element.src = firstRow[indices['Logo1']] || 'default-logo1.png'; 
+        logo1Element.alt = 'Logo 1';
+        logo1Element.classList.add('logo1'); // Add class for styling
 
-        logo1Element.src = firstRow[indices['Logo1']] || 'default-logo1.png'; // Set the logo 1
-        logo2Element.src = firstRow[indices['Logo2']] || 'default-logo2.png'; // Set the logo 2
+        const logo2Element = document.createElement('img');
+        logo2Element.src = firstRow[indices['Logo2']] || 'default-logo2.png'; 
+        logo2Element.alt = 'Logo 2';
+        logo2Element.classList.add('logo2'); // Add class for styling
+
+        const headerContainer = document.querySelector('.w3'); // Adjust as needed to match your layout
+        headerContainer.appendChild(logo1Element);
+        headerContainer.appendChild(logo2Element);
     }
 
     function initializeGallery() {
