@@ -76,9 +76,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function setTitleAndLogos(firstRow) {
+        // Set the document title
         document.title = firstRow[titleIndices['Title']] || 'Default Title';
+
+        // Select the existing logo elements
         const logo1Element = document.querySelector('.logo1');
         const logo2Element = document.querySelector('.logo2');
+
+        // Set their src attributes
         logo1Element.src = firstRow[titleIndices['Logo1']] || 'default-logo1.png'; 
         logo2Element.src = firstRow[titleIndices['Logo2']] || 'default-logo2.png'; 
     }
@@ -98,12 +103,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const resetButton = createResetButton(categorySelect, subcategorySelect);
         searchContainer.appendChild(resetButton);
 
+        // Set up event listeners for dropdowns
         categorySelect.addEventListener('change', () => {
             filterSubcategories(subcategorySelect, categorySelect.value);
             displayGallery();
         });
 
         subcategorySelect.addEventListener('change', displayGallery);
+
+        // Initial filtering of subcategories
         filterSubcategories(subcategorySelect, categorySelect.value);
     }
 
