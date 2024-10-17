@@ -18,29 +18,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let items = [];
     let headers, indices = {};
+    let titleData = [];
+    let titleHeaders, titleIndices = {};
 
+    // Fetch title and logo CSV
+    fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vQFs1QTm7qtKV8JLHabFU6vJWNTv-m9OP8M2BkDqX0ooSWqdXALW-UJ2UZAN5NFrY6R_HEH6--SdVa7/pub?output=csv')
+        .then(response => response.text())
+        .then(csvData => {
+            console.log("Fetched Title CSV Data:", csvData);
+            titleData = parseCSV(csvData);
+            if (titleData.length > 0) {
+                titleHeaders = titleData[0];
+                initializeTitleIndices(['Title', 'Logo1', 'Logo2']);
+                setTitleAndLogos(titleData[1]); // Use the first row of title data
+            } else {
+                console.error('No data found in the title CSV.');
+            }
+        })
+        .catch(error => console.error('Error fetching title CSV:', error));
+
+    // Fetch gallery CSV
     fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vT5qcq-QHtDeJHajLkcTHSwI5JsJndZotORtxyBjt1u1VLqOdLZx94RKdda1c064dUd0TBxRQAeippH/pub?output=csv')
         .then(response => response.text())
         .then(csvData => {
-            console.log("Fetched CSV Data:", csvData);  // Log fetched CSV data
+            console.log("Fetched Gallery CSV Data:", csvData);
             items = parseCSV(csvData);
-            console.log("Parsed Items:", items);  // Log parsed items
+            console.log("Parsed Items:", items);
 
             if (items.length > 0) {
                 headers = items[0];
-                console.log("Headers:", headers);  // Log headers
+                console.log("Headers:", headers);
                 initializeIndices(['SKU', 'SKUVAR', 'SKUName', 'QuantityLimit', 'Quantity', 'Category', 'SubCategory', 'Thumbnails']);
                 initializeGallery();
             } else {
-                console.error('No data found in the CSV.');
+                console.error('No data found in the gallery CSV.');
             }
         })
-        .catch(error => console.error('Error fetching CSV:', error));
+        .catch(error => console.error('Error fetching gallery CSV:', error));
 
     function parseCSV(csvData) {
         const rows = csvData.split('\n').filter(row => row.trim().length > 0);
         if (rows.length === 0) return []; // Return an empty array if no rows
-
         return rows.map(row => row.split(',').map(cell => cell.trim()));
     }
 
@@ -51,6 +69,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error(`Header ${header} not found. Check your CSV format.`);
             }
         });
+    }
+
+    function initializeTitleIndices(requiredHeaders) {
+        requiredHeaders.forEach(header => {
+            titleIndices[header] = titleHeaders.indexOf(header);
+            if (titleIndices[header] === -1) {
+                console.error(`Header ${header} not found in title CSV. Check your CSV format.`);
+            }
+        });
+    }
+
+    function setTitleAndLogos(firstRow) {
+        const titleElement = document.createElement('h1'); // Create title element
+        titleElement.textContent = firstRow[titleIndices['Title']] || 'Default Title';
+        document.body.prepend(titleElement); // Add title to the body or a specific container
+
+        const logo1Element = document.createElement('img');
+        logo1Element.src = firstRow[titleIndices['Logo1']] || 'default-logo1.png'; 
+        logo1Element.alt = 'Logo 1';
+        logo1Element.classList.add('logo1'); // Add class for styling
+
+        const logo2Element = document.createElement('img');
+        logo2Element.src = firstRow[titleIndices['Logo2']] || 'default-logo2.png'; 
+        logo2Element.alt = 'Logo 2';
+        logo2Element.classList.add('logo2'); // Add class for styling
+
+        const headerContainer = document.querySelector('.w3'); // Adjust as needed to match your layout
+        headerContainer.appendChild(logo1Element);
+        headerContainer.appendChild(logo2Element);
     }
 
     function initializeGallery() {
