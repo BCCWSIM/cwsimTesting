@@ -22,14 +22,17 @@ document.addEventListener('DOMContentLoaded', () => {
     fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vT5qcq-QHtDeJHajLkcTHSwI5JsJndZotORtxyBjt1u1VLqOdLZx94RKdda1c064dUd0TBxRQAeippH/pub?output=csv')
         .then(response => response.text())
         .then(csvData => {
-            console.log("Fetched CSV Data:", csvData);  // Log fetched CSV data
+            console.log("Fetched CSV Data:", csvData);
             items = parseCSV(csvData);
-            console.log("Parsed Items:", items);  // Log parsed items
+            console.log("Parsed Items:", items);
 
             if (items.length > 0) {
                 headers = items[0];
-                console.log("Headers:", headers);  // Log headers
-                initializeIndices(['SKU', 'SKUVAR', 'SKUName', 'QuantityLimit', 'Quantity', 'Category', 'SubCategory', 'Thumbnails']);
+                console.log("Headers:", headers);
+                initializeIndices(['Title', 'Logo1', 'Logo2', 'SKU', 'SKUVAR', 'SKUName', 'QuantityLimit', 'Quantity', 'Category', 'SubCategory', 'Thumbnails']);
+                
+                // Set the title and logos
+                setTitleAndLogos(items[1]); // Assuming the title and logos are in the first data row
                 initializeGallery();
             } else {
                 console.error('No data found in the CSV.');
@@ -39,8 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function parseCSV(csvData) {
         const rows = csvData.split('\n').filter(row => row.trim().length > 0);
-        if (rows.length === 0) return []; // Return an empty array if no rows
-
+        if (rows.length === 0) return [];
         return rows.map(row => row.split(',').map(cell => cell.trim()));
     }
 
@@ -51,6 +53,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error(`Header ${header} not found. Check your CSV format.`);
             }
         });
+    }
+
+    function setTitleAndLogos(firstRow) {
+        const titleElement = document.getElementById('pageTitle');
+        const logo1Element = document.querySelector('.logo1');
+        const logo2Element = document.querySelector('.logo2');
+
+        titleElement.textContent = firstRow[indices['Title']] || 'Default Title'; // Set the title
+
+        logo1Element.src = firstRow[indices['Logo1']] || 'default-logo1.png'; // Set the logo 1
+        logo2Element.src = firstRow[indices['Logo2']] || 'default-logo2.png'; // Set the logo 2
     }
 
     function initializeGallery() {
@@ -120,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const defaultImageUrl = 'https://lh3.googleusercontent.com/d/1YkirFIDROJt26ULPsGz0Vcax7YjGrBZa';
 
         items.slice(1).forEach(item => {
-            if (!item || item.length < headers.length) return; // Defensive check
+            if (!item || item.length < headers.length) return;
 
             const sku = item[indices['SKU']] || '';
             const skuVar = item[indices['SKUVAR']] || '';
