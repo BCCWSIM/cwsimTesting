@@ -18,110 +18,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let items = [];
     let headers, indices = {};
-    let titleData = [];
-    let titleHeaders, titleIndices = {};
 
-    // Fetch title and logo CSV
-    fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vQFs1QTm7qtKV8JLHabFU6vJWNTv-m9OP8M2BkDqX0ooSWqdXALW-UJ2UZAN5NFrY6R_HEH6--SdVa7/pub?output=csv')
-        .then(response => response.text())
-        .then(csvData => {
-            console.log("Fetched Title CSV Data:", csvData);
-            titleData = parseCSV(csvData);
-            if (titleData.length > 0) {
-                titleHeaders = titleData[0];
-                initializeTitleIndices(['Title', 'Logo1', 'Logo2']);
-                setTitleAndLogos(titleData[1]); // Use the first row of title data
-            } else {
-                console.error('No data found in the title CSV.');
-            }
-        })
-        .catch(error => console.error('Error fetching title CSV:', error));
-
-    // Fetch gallery CSV
+    // Fetching CSV data
     fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vT5qcq-QHtDeJHajLkcTHSwI5JsJndZotORtxyBjt1u1VLqOdLZx94RKdda1c064dUd0TBxRQAeippH/pub?output=csv')
         .then(response => response.text())
         .then(csvData => {
-            console.log("Fetched Gallery CSV Data:", csvData);
             items = parseCSV(csvData);
-            console.log("Parsed Items:", items);
-
-            if (items.length > 0) {
-                headers = items[0];
-                console.log("Headers:", headers);
-                initializeIndices(['SKU', 'SKUVAR', 'SKUName', 'QuantityLimit', 'Quantity', 'Category', 'SubCategory', 'Thumbnails']);
-                initializeGallery();
-            } else {
-                console.error('No data found in the gallery CSV.');
-            }
+            headers = items[0];
+            initializeIndices(['SKU', 'SKUVAR', 'SKUName', 'QuantityLimit', 'Quantity', 'Category', 'SubCategory', 'Thumbnails']);
+            initializeGallery();
         })
-        .catch(error => console.error('Error fetching gallery CSV:', error));
+        .catch(error => console.error('Error fetching CSV:', error));
 
+    // CSV parsing function
     function parseCSV(csvData) {
-        const rows = csvData.split('\n').filter(row => row.trim().length > 0);
-        if (rows.length === 0) return []; // Return an empty array if no rows
-        return rows.map(row => row.split(',').map(cell => cell.trim()));
+        return csvData.split('\n')
+            .filter(row => row.trim().length > 0)
+            .map(row => row.split(',').map(cell => cell.trim()));
     }
 
+    // Index initialization for headers
     function initializeIndices(requiredHeaders) {
         requiredHeaders.forEach(header => {
             indices[header] = headers.indexOf(header);
             if (indices[header] === -1) {
-                console.error(`Header ${header} not found. Check your CSV format.`);
+                console.error(`Header ${header} not found.`);
             }
         });
     }
 
-    function initializeTitleIndices(requiredHeaders) {
-        requiredHeaders.forEach(header => {
-            titleIndices[header] = titleHeaders.indexOf(header);
-            if (titleIndices[header] === -1) {
-                console.error(`Header ${header} not found in title CSV. Check your CSV format.`);
-            }
-        });
-    }
-
-function setTitleAndLogos(firstRow) {
-    // Set the document title
-    document.title = firstRow[titleIndices['Title']] || 'Default Title';
-
-    // Select the existing logo elements
-    const logo1Element = document.querySelector('.logo1');
-    const logo2Element = document.querySelector('.logo2');
-
-    // Set their src attributes
-    logo1Element.src = firstRow[titleIndices['Logo1']] || 'default-logo1.png'; 
-    logo1Element.alt = 'Logo 1';
-
-    logo2Element.src = firstRow[titleIndices['Logo2']] || 'default-logo2.png'; 
-    logo2Element.alt = 'Logo 2';
-
-    // Create category and subcategory dropdowns and reset button
-    const categories = new Set(items.slice(1).map(item => item[indices['Category']] || ''));
-    const categorySelect = createDropdown('categorySelect', categories);
-    const subcategorySelect = createDropdown('subcategorySelect', new Set());
-
-    const searchContainer = document.getElementById('searchAndFilterContainer');
-
-    searchContainer.appendChild(createLabel('Category:', 'categorySelect'));
-    searchContainer.appendChild(categorySelect);
-    searchContainer.appendChild(createLabel('SubCategory:', 'subcategorySelect'));
-    searchContainer.appendChild(subcategorySelect);
-
-    const resetButton = createResetButton(categorySelect, subcategorySelect);
-    searchContainer.appendChild(resetButton);
-
-    // Set up event listeners for dropdowns
-    categorySelect.addEventListener('change', () => {
-        filterSubcategories(subcategorySelect, categorySelect.value);
-        displayGallery();
-    });
-
-    subcategorySelect.addEventListener('change', displayGallery);
-    
-    // Initial filtering of subcategories
-    filterSubcategories(subcategorySelect, categorySelect.value);
-}
-
+    // Gallery initialization
     function initializeGallery() {
         const categories = new Set(items.slice(1).map(item => item[indices['Category']] || ''));
         const galleryContainer = document.getElementById('galleryContainer');
@@ -129,6 +55,7 @@ function setTitleAndLogos(firstRow) {
         const categorySelect = createDropdown('categorySelect', categories);
         const subcategorySelect = createDropdown('subcategorySelect', new Set());
 
+        // Event listeners for dropdowns
         categorySelect.addEventListener('change', () => {
             filterSubcategories(subcategorySelect, categorySelect.value);
             displayGallery();
@@ -136,18 +63,21 @@ function setTitleAndLogos(firstRow) {
 
         subcategorySelect.addEventListener('change', displayGallery);
 
-        galleryContainer.appendChild(createLabel('Category:', 'categorySelect'));
-        galleryContainer.appendChild(categorySelect);
-        galleryContainer.appendChild(createLabel('SubCategory:', 'subcategorySelect'));
-        galleryContainer.appendChild(subcategorySelect);
+        // Append dropdowns and reset button to the container
+        const searchContainer = document.getElementById('searchAndFilterContainer');
+        searchContainer.appendChild(createLabel('Category:', 'categorySelect'));
+        searchContainer.appendChild(categorySelect);
+        searchContainer.appendChild(createLabel('SubCategory:', 'subcategorySelect'));
+        searchContainer.appendChild(subcategorySelect);
 
         const resetButton = createResetButton(categorySelect, subcategorySelect);
-        galleryContainer.appendChild(resetButton);
+        searchContainer.appendChild(resetButton);
 
         filterSubcategories(subcategorySelect, categorySelect.value);
         displayGallery();
     }
 
+    // Dropdown creation
     function createDropdown(id, options) {
         const select = document.createElement('select');
         select.id = id;
@@ -162,6 +92,7 @@ function setTitleAndLogos(firstRow) {
         return select;
     }
 
+    // Subcategory filtering
     function filterSubcategories(subcategorySelect, selectedCategory) {
         subcategorySelect.innerHTML = '';
         subcategorySelect.appendChild(createOption('All'));
@@ -178,6 +109,7 @@ function setTitleAndLogos(firstRow) {
         });
     }
 
+    // Gallery display logic
     function displayGallery() {
         const selectedCategory = document.getElementById('categorySelect').value;
         const selectedSubcategory = document.getElementById('subcategorySelect').value;
@@ -228,6 +160,7 @@ function setTitleAndLogos(firstRow) {
         document.getElementById('itemCount').textContent = ` ${itemCount} Found`;
     }
 
+    // Card creation for gallery items
     function createCard(skuName, skuCount, imageUrl, sku, quantityLimit, quantity) {
         const div = document.createElement('div');
         div.classList.add('card');
@@ -249,6 +182,7 @@ function setTitleAndLogos(firstRow) {
         return div;
     }
 
+    // Content div for card items
     function createContentDiv(skuName, skuCount, imageUrl, sku, quantityLimit, quantity) {
         const contentDiv = document.createElement('div');
         contentDiv.style.display = 'flex';
@@ -269,7 +203,7 @@ function setTitleAndLogos(firstRow) {
         } else if (!quantityLimit && quantity > 0) {
             availableCountDiv.innerHTML = `${quantity} <br>Left`;
         }
-        
+
         contentDiv.appendChild(availableCountDiv);
 
         const skuDiv = document.createElement('div');
@@ -280,6 +214,7 @@ function setTitleAndLogos(firstRow) {
         return contentDiv;
     }
 
+    // Image creation for cards
     function createImage(src) {
         const img = document.createElement('img');
         img.src = src;
@@ -288,6 +223,7 @@ function setTitleAndLogos(firstRow) {
         return img;
     }
 
+    // Paragraph creation
     function createParagraph(text, className) {
         const p = document.createElement('p');
         p.textContent = text;
@@ -295,6 +231,7 @@ function setTitleAndLogos(firstRow) {
         return p;
     }
 
+    // Option creation for dropdowns
     function createOption(value) {
         const option = document.createElement('option');
         option.value = value;
@@ -302,6 +239,7 @@ function setTitleAndLogos(firstRow) {
         return option;
     }
 
+    // Label creation for dropdowns
     function createLabel(text, htmlFor) {
         const label = document.createElement('label');
         label.textContent = text;
@@ -309,6 +247,7 @@ function setTitleAndLogos(firstRow) {
         return label;
     }
 
+    // Reset button creation
     function createResetButton(categorySelect, subcategorySelect) {
         const resetButton = document.createElement('button');
         resetButton.textContent = 'Reset';
@@ -321,6 +260,7 @@ function setTitleAndLogos(firstRow) {
         return resetButton;
     }
 
+    // Live search functionality
     let timeout = null;
     document.getElementById("myInput").addEventListener('input', liveSearch);
 
