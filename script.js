@@ -122,8 +122,6 @@ function setTitleAndLogos(firstRow) {
     filterSubcategories(subcategorySelect, categorySelect.value);
 }
 
-
-
     function initializeGallery() {
         const categories = new Set(items.slice(1).map(item => item[indices['Category']] || ''));
         const galleryContainer = document.getElementById('galleryContainer');
