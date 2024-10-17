@@ -25,7 +25,6 @@ document.addEventListener('DOMContentLoaded', () => {
     fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vQFs1QTm7qtKV8JLHabFU6vJWNTv-m9OP8M2BkDqX0ooSWqdXALW-UJ2UZAN5NFrY6R_HEH6--SdVa7/pub?output=csv')
         .then(response => response.text())
         .then(csvData => {
-            console.log("Fetched Title CSV Data:", csvData);
             titleData = parseCSV(csvData);
             if (titleData.length > 0) {
                 titleHeaders = titleData[0];
@@ -41,15 +40,12 @@ document.addEventListener('DOMContentLoaded', () => {
     fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vT5qcq-QHtDeJHajLkcTHSwI5JsJndZotORtxyBjt1u1VLqOdLZx94RKdda1c064dUd0TBxRQAeippH/pub?output=csv')
         .then(response => response.text())
         .then(csvData => {
-            console.log("Fetched Gallery CSV Data:", csvData);
             items = parseCSV(csvData);
-            console.log("Parsed Items:", items);
-
             if (items.length > 0) {
                 headers = items[0];
-                console.log("Headers:", headers);
                 initializeIndices(['SKU', 'SKUVAR', 'SKUName', 'QuantityLimit', 'Quantity', 'Category', 'SubCategory', 'Thumbnails']);
-                initializeGallery();
+                initializeDropdowns(); // Call to initialize dropdowns and reset button
+                displayGallery(); // Display the initial gallery
             } else {
                 console.error('No data found in the gallery CSV.');
             }
@@ -58,7 +54,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function parseCSV(csvData) {
         const rows = csvData.split('\n').filter(row => row.trim().length > 0);
-        if (rows.length === 0) return []; // Return an empty array if no rows
         return rows.map(row => row.split(',').map(cell => cell.trim()));
     }
 
@@ -80,55 +75,35 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-function setTitleAndLogos(firstRow) {
-    // Set the document title
-    document.title = firstRow[titleIndices['Title']] || 'Default Title';
+    function setTitleAndLogos(firstRow) {
+        // Set the document title
+        document.title = firstRow[titleIndices['Title']] || 'Default Title';
 
-    // Select the existing logo elements
-    const logo1Element = document.querySelector('.logo1');
-    const logo2Element = document.querySelector('.logo2');
+        // Select the existing logo elements
+        const logo1Element = document.querySelector('.logo1');
+        const logo2Element = document.querySelector('.logo2');
 
-    // Set their src attributes
-    logo1Element.src = firstRow[titleIndices['Logo1']] || 'default-logo1.png'; 
-    logo1Element.alt = 'Logo 1';
+        // Set their src attributes
+        logo1Element.src = firstRow[titleIndices['Logo1']] || 'default-logo1.png'; 
+        logo2Element.src = firstRow[titleIndices['Logo2']] || 'default-logo2.png'; 
+    }
 
-    logo2Element.src = firstRow[titleIndices['Logo2']] || 'default-logo2.png'; 
-    logo2Element.alt = 'Logo 2';
-
-    // Create category and subcategory dropdowns and reset button
-    const categories = new Set(items.slice(1).map(item => item[indices['Category']] || ''));
-    const categorySelect = createDropdown('categorySelect', categories);
-    const subcategorySelect = createDropdown('subcategorySelect', new Set());
-
-    const searchContainer = document.getElementById('searchAndFilterContainer');
-
-    searchContainer.appendChild(createLabel('Category:', 'categorySelect'));
-    searchContainer.appendChild(categorySelect);
-    searchContainer.appendChild(createLabel('SubCategory:', 'subcategorySelect'));
-    searchContainer.appendChild(subcategorySelect);
-
-    const resetButton = createResetButton(categorySelect, subcategorySelect);
-    searchContainer.appendChild(resetButton);
-
-    // Set up event listeners for dropdowns
-    categorySelect.addEventListener('change', () => {
-        filterSubcategories(subcategorySelect, categorySelect.value);
-        displayGallery();
-    });
-
-    subcategorySelect.addEventListener('change', displayGallery);
-    
-    // Initial filtering of subcategories
-    filterSubcategories(subcategorySelect, categorySelect.value);
-}
-
-    function initializeGallery() {
+    function initializeDropdowns() {
         const categories = new Set(items.slice(1).map(item => item[indices['Category']] || ''));
-        const galleryContainer = document.getElementById('galleryContainer');
-
         const categorySelect = createDropdown('categorySelect', categories);
         const subcategorySelect = createDropdown('subcategorySelect', new Set());
 
+        const searchContainer = document.getElementById('searchAndFilterContainer');
+        
+        searchContainer.appendChild(createLabel('Category:', 'categorySelect'));
+        searchContainer.appendChild(categorySelect);
+        searchContainer.appendChild(createLabel('SubCategory:', 'subcategorySelect'));
+        searchContainer.appendChild(subcategorySelect);
+
+        const resetButton = createResetButton(categorySelect, subcategorySelect);
+        searchContainer.appendChild(resetButton);
+
+        // Set up event listeners for dropdowns
         categorySelect.addEventListener('change', () => {
             filterSubcategories(subcategorySelect, categorySelect.value);
             displayGallery();
@@ -136,16 +111,8 @@ function setTitleAndLogos(firstRow) {
 
         subcategorySelect.addEventListener('change', displayGallery);
 
-        galleryContainer.appendChild(createLabel('Category:', 'categorySelect'));
-        galleryContainer.appendChild(categorySelect);
-        galleryContainer.appendChild(createLabel('SubCategory:', 'subcategorySelect'));
-        galleryContainer.appendChild(subcategorySelect);
-
-        const resetButton = createResetButton(categorySelect, subcategorySelect);
-        galleryContainer.appendChild(resetButton);
-
+        // Initial filtering of subcategories
         filterSubcategories(subcategorySelect, categorySelect.value);
-        displayGallery();
     }
 
     function createDropdown(id, options) {
@@ -189,12 +156,8 @@ function setTitleAndLogos(firstRow) {
         const defaultImageUrl = 'https://lh3.googleusercontent.com/d/1YkirFIDROJt26ULPsGz0Vcax7YjGrBZa';
 
         items.slice(1).forEach(item => {
-            if (!item || item.length < headers.length) return; // Defensive check
-
             const sku = item[indices['SKU']] || '';
             const skuVar = item[indices['SKUVAR']] || '';
-            const quantityLimit = (item[indices['QuantityLimit']] || '').trim().toLowerCase() === 'true';
-            const quantity = parseInt(item[indices['Quantity']] || '0') || 0;
             const categoryMatch = selectedCategory === 'All' || item[indices['Category']] === selectedCategory;
             const subcategoryMatch = selectedSubcategory === 'All' || item[indices['SubCategory']] === selectedSubcategory;
 
@@ -209,8 +172,6 @@ function setTitleAndLogos(firstRow) {
                         count: 1,
                         skuName: item[indices['SKUName']] || 'Unknown SKU',
                         imageUrl,
-                        quantityLimit,
-                        quantity,
                         sku
                     });
                 } else {
@@ -219,16 +180,16 @@ function setTitleAndLogos(firstRow) {
             }
         });
 
-        skuGroups.forEach(({ count, skuName, imageUrl, sku, quantityLimit, quantity }) => {
-            const div = createCard(skuName, count, imageUrl, sku, quantityLimit, quantity);
+        skuGroups.forEach(({ count, skuName, imageUrl }) => {
+            const div = createCard(skuName, count, imageUrl);
             gallery.appendChild(div);
             itemCount++;
         });
 
-        document.getElementById('itemCount').textContent = ` ${itemCount} Found`;
+        document.getElementById('itemCount').textContent = `${itemCount} Found`;
     }
 
-    function createCard(skuName, skuCount, imageUrl, sku, quantityLimit, quantity) {
+    function createCard(skuName, skuCount, imageUrl) {
         const div = document.createElement('div');
         div.classList.add('card');
 
@@ -243,13 +204,13 @@ function setTitleAndLogos(firstRow) {
             document.body.classList.add('modal-open');
         });
 
-        const contentDiv = createContentDiv(skuName, skuCount, imageUrl, sku, quantityLimit, quantity);
+        const contentDiv = createContentDiv(skuName, skuCount, imageUrl);
         div.appendChild(contentDiv);
 
         return div;
     }
 
-    function createContentDiv(skuName, skuCount, imageUrl, sku, quantityLimit, quantity) {
+    function createContentDiv(skuName, skuCount, imageUrl) {
         const contentDiv = document.createElement('div');
         contentDiv.style.display = 'flex';
         contentDiv.style.flexDirection = 'column';
@@ -263,19 +224,8 @@ function setTitleAndLogos(firstRow) {
 
         const availableCountDiv = document.createElement('div');
         availableCountDiv.classList.add('available-count');
-
-        if (quantityLimit) {
-            availableCountDiv.innerHTML = `${skuCount} <br>Available`;
-        } else if (!quantityLimit && quantity > 0) {
-            availableCountDiv.innerHTML = `${quantity} <br>Left`;
-        }
-        
+        availableCountDiv.innerHTML = `${skuCount} <br>Available`;
         contentDiv.appendChild(availableCountDiv);
-
-        const skuDiv = document.createElement('div');
-        skuDiv.classList.add('sku');
-        skuDiv.innerHTML = sku; 
-        contentDiv.appendChild(skuDiv);
 
         return contentDiv;
     }
@@ -335,11 +285,9 @@ function setTitleAndLogos(firstRow) {
         let itemCount = 0; 
         Array.from(cards).forEach(card => {
             const title = card.getElementsByClassName("title")[0];
-            const sku = card.getElementsByClassName("sku")[0];
             const txtValueTitle = title ? title.textContent || title.innerText : '';
-            const txtValueSku = sku ? sku.textContent || sku.innerText : '';
 
-            if (txtValueTitle.toUpperCase().includes(filter) || txtValueSku.toUpperCase().includes(filter)) {
+            if (txtValueTitle.toUpperCase().includes(filter)) {
                 card.style.display = "";
                 itemCount++;
             } else {
