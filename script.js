@@ -80,25 +80,23 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function setTitleAndLogos(firstRow) {
-        const titleElement = document.createElement('h1'); // Create title element
-        titleElement.textContent = firstRow[titleIndices['Title']] || 'Default Title';
-        document.body.prepend(titleElement); // Add title to the body or a specific container
+function setTitleAndLogos(firstRow) {
+    const titleElement = document.createElement('h1'); // Create title element
+    titleElement.textContent = firstRow[titleIndices['Title']] || 'Default Title';
+    document.body.prepend(titleElement); // Add title to the body or a specific container
 
-        const logo1Element = document.createElement('img');
-        logo1Element.src = firstRow[titleIndices['Logo1']] || 'default-logo1.png'; 
-        logo1Element.alt = 'Logo 1';
-        logo1Element.classList.add('logo1'); // Add class for styling
+    // Select the existing logo elements
+    const logo1Element = document.querySelector('.logo1');
+    const logo2Element = document.querySelector('.logo2');
 
-        const logo2Element = document.createElement('img');
-        logo2Element.src = firstRow[titleIndices['Logo2']] || 'default-logo2.png'; 
-        logo2Element.alt = 'Logo 2';
-        logo2Element.classList.add('logo2'); // Add class for styling
+    // Set their src attributes
+    logo1Element.src = firstRow[titleIndices['Logo1']] || 'default-logo1.png'; 
+    logo1Element.alt = 'Logo 1';
 
-        const headerContainer = document.querySelector('.w3'); // Adjust as needed to match your layout
-        headerContainer.appendChild(logo1Element);
-        headerContainer.appendChild(logo2Element);
-    }
+    logo2Element.src = firstRow[titleIndices['Logo2']] || 'default-logo2.png'; 
+    logo2Element.alt = 'Logo 2';
+}
+
 
     function initializeGallery() {
         const categories = new Set(items.slice(1).map(item => item[indices['Category']] || ''));
