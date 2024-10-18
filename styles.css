@@ -28,7 +28,7 @@ button {
 
 .logo-img-title-container, 
 .logo-container {
-    flex-direction: row; /* Ensure logos align horizontally */
+    flex-direction: row;
 }
 
 /* Logo Styles */
