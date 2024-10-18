@@ -18,42 +18,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let items = [];
     let headers, indices = {};
-    let titleData = [];
-    let titleHeaders, titleIndices = {};
 
-    // Fetch title and logo CSV
-    fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vQFs1QTm7qtKV8JLHabFU6vJWNTv-m9OP8M2BkDqX0ooSWqdXALW-UJ2UZAN5NFrY6R_HEH6--SdVa7/pub?output=csv')
-        .then(response => response.text())
-        .then(csvData => {
-            titleData = parseCSV(csvData);
-            if (titleData.length > 0) {
-                titleHeaders = titleData[0];
-                initializeTitleIndices(['Title', 'Logo1', 'Logo2']);
-                setTitleAndLogos(titleData[1]); // Use the first row of title data
-            } else {
-                console.error('No data found in the title CSV.');
-            }
-        })
-        .catch(error => console.error('Error fetching title CSV:', error));
-
-    // Fetch gallery CSV
     fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vT5qcq-QHtDeJHajLkcTHSwI5JsJndZotORtxyBjt1u1VLqOdLZx94RKdda1c064dUd0TBxRQAeippH/pub?output=csv')
         .then(response => response.text())
         .then(csvData => {
+            console.log("Fetched CSV Data:", csvData);  // Log fetched CSV data
             items = parseCSV(csvData);
+            console.log("Parsed Items:", items);  // Log parsed items
+
             if (items.length > 0) {
                 headers = items[0];
+                console.log("Headers:", headers);  // Log headers
                 initializeIndices(['SKU', 'SKUVAR', 'SKUName', 'QuantityLimit', 'Quantity', 'Category', 'SubCategory', 'Thumbnails']);
-                initializeDropdowns(); // Call to initialize dropdowns and reset button
-                displayGallery(); // Display the initial gallery
+                initializeGallery();
             } else {
-                console.error('No data found in the gallery CSV.');
+                console.error('No data found in the CSV.');
             }
         })
-        .catch(error => console.error('Error fetching gallery CSV:', error));
+        .catch(error => console.error('Error fetching CSV:', error));
 
     function parseCSV(csvData) {
         const rows = csvData.split('\n').filter(row => row.trim().length > 0);
+        if (rows.length === 0) return []; // Return an empty array if no rows
+
         return rows.map(row => row.split(',').map(cell => cell.trim()));
     }
 
@@ -66,44 +53,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function initializeTitleIndices(requiredHeaders) {
-        requiredHeaders.forEach(header => {
-            titleIndices[header] = titleHeaders.indexOf(header);
-            if (titleIndices[header] === -1) {
-                console.error(`Header ${header} not found in title CSV. Check your CSV format.`);
-            }
-        });
-    }
-
-    function setTitleAndLogos(firstRow) {
-        // Set the document title
-        document.title = firstRow[titleIndices['Title']] || 'Default Title';
-
-        // Select the existing logo elements
-        const logo1Element = document.querySelector('.logo1');
-        const logo2Element = document.querySelector('.logo2');
-
-        // Set their src attributes
-        logo1Element.src = firstRow[titleIndices['Logo1']] || 'default-logo1.png'; 
-        logo2Element.src = firstRow[titleIndices['Logo2']] || 'default-logo2.png'; 
-    }
-
-    function initializeDropdowns() {
+    function initializeGallery() {
         const categories = new Set(items.slice(1).map(item => item[indices['Category']] || ''));
+        const galleryContainer = document.getElementById('galleryContainer');
+
         const categorySelect = createDropdown('categorySelect', categories);
         const subcategorySelect = createDropdown('subcategorySelect', new Set());
 
-        const searchContainer = document.getElementById('searchAndFilterContainer');
-        
-        searchContainer.appendChild(createLabel('Category:', 'categorySelect'));
-        searchContainer.appendChild(categorySelect);
-        searchContainer.appendChild(createLabel('SubCategory:', 'subcategorySelect'));
-        searchContainer.appendChild(subcategorySelect);
-
-        const resetButton = createResetButton(categorySelect, subcategorySelect);
-        searchContainer.appendChild(resetButton);
-
-        // Set up event listeners for dropdowns
         categorySelect.addEventListener('change', () => {
             filterSubcategories(subcategorySelect, categorySelect.value);
             displayGallery();
@@ -111,8 +67,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         subcategorySelect.addEventListener('change', displayGallery);
 
-        // Initial filtering of subcategories
+        galleryContainer.appendChild(createLabel('Category:', 'categorySelect'));
+        galleryContainer.appendChild(categorySelect);
+        galleryContainer.appendChild(createLabel('SubCategory:', 'subcategorySelect'));
+        galleryContainer.appendChild(subcategorySelect);
+
+        const resetButton = createResetButton(categorySelect, subcategorySelect);
+        galleryContainer.appendChild(resetButton);
+
         filterSubcategories(subcategorySelect, categorySelect.value);
+        displayGallery();
     }
 
     function createDropdown(id, options) {
@@ -156,8 +120,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const defaultImageUrl = 'https://lh3.googleusercontent.com/d/1YkirFIDROJt26ULPsGz0Vcax7YjGrBZa';
 
         items.slice(1).forEach(item => {
+            if (!item || item.length < headers.length) return; // Defensive check
+
             const sku = item[indices['SKU']] || '';
             const skuVar = item[indices['SKUVAR']] || '';
+            const quantityLimit = (item[indices['QuantityLimit']] || '').trim().toLowerCase() === 'true';
+            const quantity = parseInt(item[indices['Quantity']] || '0') || 0;
             const categoryMatch = selectedCategory === 'All' || item[indices['Category']] === selectedCategory;
             const subcategoryMatch = selectedSubcategory === 'All' || item[indices['SubCategory']] === selectedSubcategory;
 
@@ -172,6 +140,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         count: 1,
                         skuName: item[indices['SKUName']] || 'Unknown SKU',
                         imageUrl,
+                        quantityLimit,
+                        quantity,
                         sku
                     });
                 } else {
@@ -180,16 +150,16 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        skuGroups.forEach(({ count, skuName, imageUrl }) => {
-            const div = createCard(skuName, count, imageUrl);
+        skuGroups.forEach(({ count, skuName, imageUrl, sku, quantityLimit, quantity }) => {
+            const div = createCard(skuName, count, imageUrl, sku, quantityLimit, quantity);
             gallery.appendChild(div);
             itemCount++;
         });
 
-        document.getElementById('itemCount').textContent = `${itemCount} Found`;
+        document.getElementById('countValue').textContent = itemCount;  // Update countValue
     }
 
-    function createCard(skuName, skuCount, imageUrl) {
+    function createCard(skuName, skuCount, imageUrl, sku, quantityLimit, quantity) {
         const div = document.createElement('div');
         div.classList.add('card');
 
@@ -204,13 +174,13 @@ document.addEventListener('DOMContentLoaded', () => {
             document.body.classList.add('modal-open');
         });
 
-        const contentDiv = createContentDiv(skuName, skuCount, imageUrl);
+        const contentDiv = createContentDiv(skuName, skuCount, imageUrl, sku, quantityLimit, quantity);
         div.appendChild(contentDiv);
 
         return div;
     }
 
-    function createContentDiv(skuName, skuCount, imageUrl) {
+    function createContentDiv(skuName, skuCount, imageUrl, sku, quantityLimit, quantity) {
         const contentDiv = document.createElement('div');
         contentDiv.style.display = 'flex';
         contentDiv.style.flexDirection = 'column';
@@ -224,8 +194,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const availableCountDiv = document.createElement('div');
         availableCountDiv.classList.add('available-count');
-        availableCountDiv.innerHTML = `${skuCount} <br>Available`;
+
+        if (quantityLimit) {
+            availableCountDiv.innerHTML = `${skuCount} <br>Available`;
+        } else if (!quantityLimit && quantity > 0) {
+            availableCountDiv.innerHTML = `${quantity} <br>Left`;
+        }
+        
         contentDiv.appendChild(availableCountDiv);
+
+        const skuDiv = document.createElement('div');
+        skuDiv.classList.add('sku');
+        skuDiv.innerHTML = sku; 
+        contentDiv.appendChild(skuDiv);
 
         return contentDiv;
     }
@@ -285,9 +266,11 @@ document.addEventListener('DOMContentLoaded', () => {
         let itemCount = 0; 
         Array.from(cards).forEach(card => {
             const title = card.getElementsByClassName("title")[0];
+            const sku = card.getElementsByClassName("sku")[0];
             const txtValueTitle = title ? title.textContent || title.innerText : '';
+            const txtValueSku = sku ? sku.textContent || sku.innerText : '';
 
-            if (txtValueTitle.toUpperCase().includes(filter)) {
+            if (txtValueTitle.toUpperCase().includes(filter) || txtValueSku.toUpperCase().includes(filter)) {
                 card.style.display = "";
                 itemCount++;
             } else {
@@ -295,7 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        document.getElementById('itemCount').textContent = `${itemCount} Found`;
+        document.getElementById('countValue').textContent = itemCount;  // Update item count
 
         timeout = setTimeout(() => {
             input.value = '';
